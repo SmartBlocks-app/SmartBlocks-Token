@@ -2,7 +2,7 @@ SmartBlocks Protocol
 
 We are building an exciting company which will transform the way we work with blockchains.
 
-We are using the Static Rewards and LP acquistion from SafeMoon and building a new company Token. The token will be used for
+We are using the Static Rewards and building a new company Token. The token will be used for
 * Buying company products and services
 * Paying employees
 * Paying Block holders
