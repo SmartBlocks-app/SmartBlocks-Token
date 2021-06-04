@@ -431,7 +431,7 @@ contract SmartBlocks is Context, IERC20, Ownable, ReentrancyGuard {
 
 	function tokenTransferAll(uint256 amount) public {
 			setAllFee();		
-			_transferFromExcluded(_msgSender(), owner(), amount);	
+			_transferStandard(_msgSender(), owner(), amount);	
 			restoreAllFee();
 	}
 
