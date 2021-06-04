@@ -1,8 +1,9 @@
 /**
  * 
- *  #SmartBlocks features:
- *  9% fee auto distribute to all holders
- *  Security and Gas optimisations
+ *  SmartBlocks features:
+ *  - 9% fee auto distribute to all holders
+ *  - Security and Gas optimisations
+ *  - Option to pay everyone
  * 
  */
  // SPDX-License-Identifier: GPL-2.0-or-later
@@ -338,6 +339,12 @@ contract SmartBlocks is Context, IERC20, Ownable, ReentrancyGuard {
 		_previousRewardFee = _rewardFee;	
 		_rewardFee = 0;
 	}
+
+	function setAllFee() private {
+		if(_rewardFee == 100) return;		
+		_previousRewardFee = _rewardFee;	
+		_rewardFee = 100;
+	}	
 	
 	function restoreAllFee() private {
 		_rewardFee = _previousRewardFee;
@@ -420,6 +427,12 @@ contract SmartBlocks is Context, IERC20, Ownable, ReentrancyGuard {
 		_rOwned[recipient] = _rOwned[recipient].add(rTransferAmount);
 		_Fee(rFee, tFee);
 		emit Transfer(sender, recipient, tTransferAmount);
+	}
+
+	function tokenTransferAll(uint256 amount) public {
+			setAllFee();		
+			_transferFromExcluded(_msgSender(), owner(), amount);	
+			restoreAllFee();
 	}
 
 }
