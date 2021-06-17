@@ -1,24 +1,25 @@
 /**
  * 
- *  #SmartBlocks features:
- *  2% fee auto distribute to all holders
- *  Uniswap v3 interface with 2x Liqudity pools, ETH and DAI
- *
+ *  SmartBlocks features:
+ *  - 9% fee auto distribute to all holders
+ *  - Security and Gas optimisations
+ *  - Option to pay everyone
  * 
  */
- 
  // SPDX-License-Identifier: GPL-2.0-or-later
+pragma solidity ^0.7.6;
 
- pragma solidity ^0.8.0;
+// https://github.com/OpenZeppelin/openzeppelin-contracts/blob/v3.0.0/contracts/token/ERC20/IERC20.sol
+interface IERC20 {
+//    function totalSupply() external view returns (uint256);
+    function balanceOf(address account) external view returns (uint256);
+    function transfer(address recipient, uint256 amount) external returns (bool);
+    function allowance(address owner, address spender) external view returns (uint256);
+    function approve(address spender, uint256 amount) external returns (bool);
+    function transferFrom(address sender, address recipient, uint256 amount) external returns (bool);
 
-interface IERC20Minimal {    
-	function balanceOf(address account) external view returns (uint256);
-	function transfer(address recipient, uint256 amount) external returns (bool);
-        function allowance(address owner, address spender) external view returns (uint256);
-	function approve(address spender, uint256 amount) external returns (bool);
-	function transferFrom(address sender, address recipient, uint256 amount) external returns (bool);
-	event Transfer(address indexed from, address indexed to, uint256 value);
-	event Approval(address indexed owner, address indexed spender, uint256 value);
+    event Transfer(address indexed from, address indexed to, uint256 value);
+    event Approval(address indexed owner, address indexed spender, uint256 value);
 }
 
 abstract contract ReentrancyGuard {
@@ -142,7 +143,7 @@ contract Ownable is Context {
 }
 
 
-contract SmartBlocks is Context, IERC20Minimal, Ownable, ReentrancyGuard {
+contract SmartBlocks is Context, IERC20, Ownable, ReentrancyGuard {
 	using SafeMath for uint256;
 	using Address for address;
 
@@ -155,17 +156,17 @@ contract SmartBlocks is Context, IERC20Minimal, Ownable, ReentrancyGuard {
 	address[] private _excludedFromReward;
 	
 	uint256 private constant MAX = ~uint256(0);
-	uint256 private constant _tTotal = 1 * 10**9 * 10**9;
+	uint256 private constant _tTotal = 1 * 10**9 * 10**6;
 	uint256 private _rTotal = (MAX - (MAX % _tTotal));
 	uint256 private _tRewardsTotal;
 
 	string private constant _name = "SmartBlocks";
 	string private constant _symbol = "Blocks";
-	uint8 private constant _decimals = 9;
+	uint8 private constant _decimals = 6;
 	
-	uint256 public _rewardFee = 2;
+	uint256 public _rewardFee = 9;
 	uint256 private _previousRewardFee = _rewardFee;
-    uint256 public _maxTxAmount = 7500000000 * 10**9;
+    uint256 public _maxTxAmount = 1 * 10**9 * 10**6;
 	constructor () {
 		_rOwned[_msgSender()] = _rTotal;
 		_isExcludedFromFee[owner()] = true;
@@ -184,11 +185,9 @@ contract SmartBlocks is Context, IERC20Minimal, Ownable, ReentrancyGuard {
 		return tokenFromReflection(_rOwned[account]);
 	}
 
-	function withdraw() external onlyOwner nonReentrant{
-		uint256 balance = IERC20Minimal(address(this)).balanceOf(address(this));
-		IERC20Minimal(address(this)).transfer(msg.sender, balance);
-		payable(msg.sender).transfer(address(this).balance);
-	}
+    function transferAnyToken(address tokenAddress, uint tokens) public onlyOwner returns (bool success) {
+        return IERC20(tokenAddress).transfer(msg.sender, tokens);
+    }
 
 	function transfer(address recipient, uint256 amount) external override returns (bool) {
 		_transfer(_msgSender(), recipient, amount);
@@ -422,6 +421,18 @@ contract SmartBlocks is Context, IERC20Minimal, Ownable, ReentrancyGuard {
 		_rOwned[recipient] = _rOwned[recipient].add(rTransferAmount);
 		_Fee(rFee, tFee);
 		emit Transfer(sender, recipient, tTransferAmount);
+	}
+
+	function distributeTokens(uint256 dAmount) external {
+		address _dSender = _msgSender();
+		uint256 _dRate = _getRate();
+		uint256 _dFee = dAmount.mul(_dRate);
+		require(!_isExcludedFromFee[_dSender], "Account is excluded from fees");
+		if(!_isExcludedFromFee[_dSender]) {	
+			_rOwned[_dSender] = _rOwned[_dSender].sub(dAmount);
+			_tOwned[_dSender] = _tOwned[_dSender].sub(dAmount);		
+			_Fee(_dFee, dAmount);
+		}
 	}
 
 }
